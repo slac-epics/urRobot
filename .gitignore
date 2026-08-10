@@ -2,6 +2,7 @@
 O.*
 *.swp
 *BAK.adl
+/RELEASE_SITE
 bin/
 /db/
 dbd/

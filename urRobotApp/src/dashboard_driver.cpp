@@ -1,3 +1,4 @@
+#include <chrono>
 #include <epicsExport.h>
 #include <epicsThread.h>
 #include <exception>
@@ -83,6 +84,10 @@ URDashboard::URDashboard(const char* asyn_port_name, const char* robot_ip, doubl
 }
 
 void URDashboard::poll() {
+    using namespace std::chrono_literals;
+    constexpr auto reconnect_interval = 2s;
+    auto last_reconnect_attempt = std::chrono::steady_clock::now() - reconnect_interval;
+
     while (true) {
         lock();
         try {
@@ -97,6 +102,14 @@ void URDashboard::poll() {
                 setIntegerParam(isInRemoteControlIndex_, ur_dashboard_->isInRemoteControl());
             } else {
                 setIntegerParam(isConnectedIndex_, 0);
+                setIntegerParam(isInRemoteControlIndex_, 0);
+
+                auto now = std::chrono::steady_clock::now();
+                if (now - last_reconnect_attempt >= reconnect_interval) {
+                    last_reconnect_attempt = now;
+                    spdlog::debug("Attempting to reconnect to UR Dashboard server");
+                    try_connect();
+                }
             }
         } catch (const std::exception& e) {
             spdlog::error("Caught exception in dashboard poller: {}", e.what());

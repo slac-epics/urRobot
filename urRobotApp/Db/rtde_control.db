@@ -23,10 +23,21 @@ record(calcout, "$(P)Control:dash_trig_disconnect")
 {
     field(INPA, "$(P)Dashboard:IsInRemoteControl.RVAL CP")
     field(CALC, "A")
-    field(OOPT, "Transition To Zero")
+    field(OOPT, "When Zero")
     field(DOPT, "Use OCAL")
     field(OCAL, "1")
     field(OUT, "$(P)Control:Disconnect.PROC")
+}
+
+record(calcout, "$(P)Control:dash_trig_reconnect")
+{
+    field(DESC, "Auto-reconnects RTDE control when pendant returns to remote")
+    field(INPA, "$(P)Dashboard:IsInRemoteControl.RVAL CP")
+    field(CALC, "A")
+    field(OOPT, "When Non-zero")
+    field(DOPT, "Use OCAL")
+    field(OCAL, "1")
+    field(OUT, "$(P)Control:Reconnect.PROC")
 }
 
 record(bo, "$(P)Control:Disconnect")
@@ -632,6 +643,68 @@ record(bo, "$(P)Control:AutoMoveL")
     field(VAL, 0)
 }
 
+record(sseq, "$(P)Control:EnableTweak")
+{
+    field(DESC, "Sync cmds, then arm tweak after delay")
+
+    field(LNK1, "$(P)Control:sync_both_cmd.PROC CA")
+    field(DO1,  "1")
+
+    field(DLY2, "1.0")
+    field(LNK2, "$(P)Control:AutoMoveL PP")
+    field(DO2,  "1")
+
+    field(LNK3, "$(P)Control:AutoMoveJ PP")
+    field(DO3,  "1")
+}
+
+record(sseq, "$(P)Control:DisableTweak")
+{
+    field(DESC, "Disarm tweak motion")
+
+    field(LNK1, "$(P)Control:AutoMoveL PP")
+    field(DO1,  "0")
+
+    field(LNK2, "$(P)Control:AutoMoveJ PP")
+    field(DO2,  "0")
+}
+
+# ---- Tool step fanout ----
+record(ao, "$(P)Control:PoseTweakVal") {
+    field(DESC, "Master tweak step for all pose axes")
+    field(VAL,  "10")
+    field(PINI, "YES")
+    field(FLNK, "$(P)Control:PoseStepFanout")
+}
+record(dfanout, "$(P)Control:PoseStepFanout") {
+    field(DOL,  "$(P)Control:PoseTweakVal")
+    field(OMSL, "closed_loop")
+    field(OUTA, "$(P)Control:PoseXTweakVal PP")
+    field(OUTB, "$(P)Control:PoseYTweakVal PP")
+    field(OUTC, "$(P)Control:PoseZTweakVal PP")
+    field(OUTD, "$(P)Control:PoseRollTweakVal PP")
+    field(OUTE, "$(P)Control:PosePitchTweakVal PP")
+    field(OUTF, "$(P)Control:PoseYawTweakVal PP")
+}
+
+# ---- Joint step fanout ----
+record(ao, "$(P)Control:JointTweakVal") {
+    field(DESC, "Master tweak step for all joints")
+    field(VAL,  "5")
+    field(PINI, "YES")
+    field(FLNK, "$(P)Control:JointStepFanout")
+}
+record(dfanout, "$(P)Control:JointStepFanout") {
+    field(DOL,  "$(P)Control:JointTweakVal")
+    field(OMSL, "closed_loop")
+    field(OUTA, "$(P)Control:J1TweakVal PP")
+    field(OUTB, "$(P)Control:J2TweakVal PP")
+    field(OUTC, "$(P)Control:J3TweakVal PP")
+    field(OUTD, "$(P)Control:J4TweakVal PP")
+    field(OUTE, "$(P)Control:J5TweakVal PP")
+    field(OUTF, "$(P)Control:J6TweakVal PP")
+}
+
 record(calcout, "$(P)Control:auto_moveL_calc")
 {
     field(INPA, "$(P)Control:AutoMoveL")
@@ -945,6 +1018,14 @@ record(calcout, "$(P)Control:PoseYawTweakCalcRev")
     field(OUT, "$(P)Control:PoseYawCmd PP")
 }
 
+record(calcout, "$(P)Control:tcp_offset_resync")
+{
+    field(DESC, "Resync pose cmds once TCP offset settles")
+    field(CALC, "1")
+    field(ODLY, 0.3)
+    field(OUT, "$(P)Control:sync_pose_cmd.PROC")
+}
+
 record(ao, "$(P)Control:TCPOffset_X")
 {
     field(DESC, "X TCP offset")
@@ -953,6 +1034,7 @@ record(ao, "$(P)Control:TCPOffset_X")
     field(EGU, "mm")
     field(PINI, 1)
     field(PREC, 4)
+    field(FLNK, "$(P)Control:tcp_offset_resync.PROC")
 }
 record(ao, "$(P)Control:TCPOffset_Y")
 {
@@ -962,6 +1044,7 @@ record(ao, "$(P)Control:TCPOffset_Y")
     field(EGU, "mm")
     field(PINI, 1)
     field(PREC, 4)
+    field(FLNK, "$(P)Control:tcp_offset_resync.PROC")
 }
 record(ao, "$(P)Control:TCPOffset_Z")
 {
@@ -971,33 +1054,37 @@ record(ao, "$(P)Control:TCPOffset_Z")
     field(EGU, "mm")
     field(PINI, 1)
     field(PREC, 4)
+    field(FLNK, "$(P)Control:tcp_offset_resync.PROC")
 }
 record(ao, "$(P)Control:TCPOffset_Roll")
 {
     field(DESC, "Roll TCP offset")
     field(DTYP, "asynFloat64")
     field(OUT,  "@asyn($(PORT),3,$(TIMEOUT=1))TCP_OFFSET")
-    field(EGU, "rad")
+    field(EGU, "deg")
     field(PINI, 1)
     field(PREC, 4)
+    field(FLNK, "$(P)Control:tcp_offset_resync.PROC")
 }
 record(ao, "$(P)Control:TCPOffset_Pitch")
 {
     field(DESC, "Pitch TCP offset")
     field(DTYP, "asynFloat64")
     field(OUT,  "@asyn($(PORT),4,$(TIMEOUT=1))TCP_OFFSET")
-    field(EGU, "rad")
+    field(EGU, "deg")
     field(PINI, 1)
     field(PREC, 4)
+    field(FLNK, "$(P)Control:tcp_offset_resync.PROC")
 }
 record(ao, "$(P)Control:TCPOffset_Yaw")
 {
     field(DESC, "Yaw TCP offset")
     field(DTYP, "asynFloat64")
     field(OUT,  "@asyn($(PORT),5,$(TIMEOUT=1))TCP_OFFSET")
-    field(EGU, "rad")
+    field(EGU, "deg")
     field(PINI, 1)
     field(PREC, 4)
+    field(FLNK, "$(P)Control:tcp_offset_resync.PROC")
 }
 
 #======================

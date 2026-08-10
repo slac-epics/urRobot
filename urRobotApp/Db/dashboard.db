@@ -21,6 +21,7 @@ record(bi, "$(P)Dashboard:IsInRemoteControl")
     field(INP,  "@asyn($(PORT),$(ADDR=0),$(TIMEOUT=1))IS_IN_REMOTE_CONTROL")
     field(VAL, 0)
     field(SCAN, "I/O Intr")
+    field(PINI, "YES")
 }
 
 record(bi, "$(P)Dashboard:Running")
