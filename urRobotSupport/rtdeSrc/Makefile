@@ -9,11 +9,6 @@ SRC_DIRS += ../generated
 USR_INCLUDES += -I../ur_rtde/include
 USR_INCLUDES += -I../generated
 
-# Boost headers (see WITH_BOOST / BOOST_* in configure/CONFIG_SITE)
-ifeq ($(WITH_BOOST),YES)
-USR_INCLUDES += -I$(BOOST_INCLUDE)
-endif
-
 USR_CXXFLAGS += -std=c++11
 
 LIBRARY = rtde
@@ -55,6 +50,11 @@ ifeq ($(WITH_BOOST),YES)
   endif
 endif
 
+# Boost headers (see WITH_BOOST / BOOST_* in configure/CONFIG_SITE)
+ifeq ($(WITH_BOOST),YES)
+USR_INCLUDES += -I$(BOOST_INCLUDE)
+endif
+
 INC += ur_rtde/dashboard_client.h
 INC += ur_rtde/dashboard_enums.h
 INC += ur_rtde/robot_state.h
@@ -69,6 +69,7 @@ INC += ur_rtde/rtde_io_interface_doc.h
 INC += ur_rtde/rtde_receive_interface.h
 INC += ur_rtde/rtde_receive_interface_doc.h
 INC += ur_rtde/rtde_utility.h
+INC += ur_rtde/thread_utility.h
 INC += ur_rtde/script_client.h
 INC += urcl/default_log_handler.h
 INC += urcl/log.h
